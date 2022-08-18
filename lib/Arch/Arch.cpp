@@ -73,6 +73,8 @@ CallingConvention::CreateCCFromArch(const remill::Arch *arch) {
           arch->os_name == remill::kOSLinux ||
           arch->os_name == remill::kOSSolaris) {
         return CreateX86_64_SysV(arch);
+      } else if ( arch->os_name == remill::kOSWindows ) {
+        return CreateX86_64_FastCall( arch );
       } else {
         break;
       }
@@ -117,7 +119,15 @@ CallingConvention::CreateCCFromArchAndID(
       if (arch->IsX86()) {
         return CreateX86_C(arch);
       } else if (arch->IsAMD64()) {
-        return CreateX86_64_SysV(arch);
+        if ( arch->os_name == remill::kOSmacOS
+             || arch->os_name == remill::kOSLinux
+             || arch->os_name == remill::kOSSolaris ) {
+          return CreateX86_64_SysV( arch );
+        } else if ( arch->os_name == remill::kOSWindows ) {
+          return CreateX86_64_FastCall( arch );
+        } else {
+          break;
+        }
       } else if (arch->IsAArch64()) {
         return CreateAArch64_C(arch);
       } else if (arch->IsSPARC32()) {
@@ -157,6 +167,13 @@ CallingConvention::CreateCCFromArchAndID(
     case llvm::CallingConv::X86_64_SysV:
       if (arch->IsAMD64()) {
         return CreateX86_64_SysV(arch);
+      } else {
+        break;
+      }
+
+    case llvm::CallingConv::Win64:
+      if ( arch->IsAMD64() ) {
+        return CreateX86_64_FastCall( arch );
       } else {
         break;
       }

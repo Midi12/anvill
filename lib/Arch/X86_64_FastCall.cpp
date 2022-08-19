@@ -182,7 +182,8 @@ namespace anvill {
     if ( function.hasStructRetAttr() ) {
       auto &value_declaration = ret_values.emplace_back();
 
-      const auto bit_width = ret_type->getBitWidth();
+      llvm::DataLayout dl( function.getParent() );
+      const auto bit_width = dl.getTypeSizeInBits( ret_type );
       if ( bit_width <= 64 ) {
         value_declaration.type = ret_type;
       } else {
@@ -199,15 +200,14 @@ namespace anvill {
         return llvm::Error::success();
       }
 
-      case llvm::Type::IntegerTyId: {
+      case llvm::Type::IntegerTyID: {
         const auto *int_ty = llvm::dyn_cast< llvm::IntegerType >( ret_type );
-        const auto int64_ty = llvm::Type::getInt64Ty( int64_ty->getContext() );
         const auto bit_width = int_ty->getBitWidth();
 
         // Scalar value can fit into 64 bit, put it into RAX
         //
         if ( bit_width <= 64 ) {
-          auto &value_declaration = ret_value.emplace_back();
+          auto &value_declaration = ret_values.emplace_back();
           value_declaration.reg = arch->RegisterByName( "RAX" );
           value_declaration.type = ret_type;
           return llvm::Error::success();
@@ -215,7 +215,7 @@ namespace anvill {
         // Else if less than 128 bit return it through XMM0
         //
         else if ( bit_width <= 128 ) {
-          auto &value_declaration = ret_value.emplace_back();
+          auto &value_declaration = ret_values.emplace_back();
           value_declaration.reg = arch->RegisterByName( "XMM0" );
           value_declaration.type = ret_type;
           return llvm::Error::success();
@@ -245,7 +245,7 @@ namespace anvill {
       //
       case llvm::Type::FloatTyID:
       case llvm::Type::DoubleTyID: {
-        auto &value_declaration = ret_value.emplace_back();
+        auto &value_declaration = ret_values.emplace_back();
           value_declaration.reg = arch->RegisterByName( "XMM0" );
           value_declaration.type = ret_type;
           return llvm::Error::success();
